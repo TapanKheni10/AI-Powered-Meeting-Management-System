@@ -2,5 +2,11 @@ fastapi
 sqlalchemy
 uvicorn
 python-dotenv
+streamlit==1.37.0
+streamlit-webrtc
+opencv-python
+python-docx
+python-pptx
+pyPDF2
 
--e .
+# -e .
