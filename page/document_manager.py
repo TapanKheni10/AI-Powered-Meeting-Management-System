@@ -16,11 +16,11 @@ def run():
 
     def save_uploaded_file(uploaded_file):
 
-        original_file_path = os.path.join(DOCUMENTS_DIR, "original documents")
-
+        original_file_path = os.path.join(DOCUMENTS_DIR, "original")
+        
         if not os.path.exists(original_file_path):
             os.makedirs(original_file_path)
-
+       
         for file in uploaded_file:
             with open(os.path.join(original_file_path, file.name), 'wb') as f:
                 f.write(file.getbuffer())
@@ -45,7 +45,7 @@ def run():
 
     with st.form(key = 'upload_form'):
 
-        uploaded_files = st.file_uploader('Upload Document', type = ['pdf', 'docx', 'txt', 'pptx'], accept_multiple_files = True)
+        uploaded_files = st.file_uploader('Upload Document', type = ['pdf', 'docx', 'txt'], accept_multiple_files = True)
 
         discussion_points = st.text_area('Enter your discussion points here (Each in new line)', height = 200)
 
