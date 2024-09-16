@@ -1,10 +1,11 @@
 import streamlit as st
-from page import home, document_manager, agenda_creation
+from page import home, document_manager, agenda_creation, meeting_tracker
 
 PAGES = {
     "Home": {"page": home, "title": "Home Page", "icon": "🏠"},
     "Document Manager": {"page": document_manager, "title": "Document Manager", "icon": "📂"},
     "Agenda Creator": {"page": agenda_creation, "title": "Agenda Creator", "icon": "📝"},
+    "Video Tracking": {"page": meeting_tracker, "title": "Video Tracking", "icon": "📹"},
 }
 
 if 'current_page' not in st.session_state:

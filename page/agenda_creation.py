@@ -1,4 +1,4 @@
-from src.MeetingManagement.servies.agenda_creation import create_agenda
+from MeetingManagement.servies.agenda_service import create_agenda
 import streamlit as st
 import os
 import json
@@ -21,7 +21,7 @@ def run():
         st.success("Agenda created successfully.")
 
     else:
-        st.warning("Please click the button to create the agenda.")
+        st.info("Please click the button to create the agenda.")
 
     
 
