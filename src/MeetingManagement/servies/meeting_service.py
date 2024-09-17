@@ -2,7 +2,7 @@ from moviepy.editor import VideoFileClip
 import os
 from transformers import pipeline
 from MeetingManagement import logger
-import soundfile as sf  
+import soundfile as sf 
 
 ## Define the input video file path and output audio file path
 

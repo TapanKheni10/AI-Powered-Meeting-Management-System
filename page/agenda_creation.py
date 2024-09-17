@@ -1,4 +1,4 @@
-from MeetingManagement.servies.agenda_service import create_agenda
+from MeetingManagement.servies.agenda_service import agenda_generation
 import streamlit as st
 import os
 import json
@@ -11,13 +11,10 @@ def run():
     b = st.button("Create Agenda")
     
     if b:
-        with open("database/discussion_points/discussion_points.json", 'r') as f:
-            discussion_points = json.load(f)
-
-        full_agenda, agenda_items = create_agenda()
+        agenda_text = agenda_generation()
         
         st.write("Here is the agenda of the meeting:")
-        st.write(full_agenda)
+        st.write(agenda_text)
         st.success("Agenda created successfully.")
 
     else:

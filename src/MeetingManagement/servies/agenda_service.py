@@ -1,115 +1,161 @@
-import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
-from docx import Document
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+import docx
 import json
 from MeetingManagement import logger
+from langchain_core.documents import Document
+from langchain.vectorstores import Chroma
+from langchain_google_genai import GoogleGenerativeAI
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.prompts import PromptTemplate
+import re
+from uuid import uuid4
 
 load_dotenv()
 
-genai.configure(api_key = os.getenv('GEMINI_API_KEY'))
-genai_model = genai.GenerativeModel('gemini-pro')
+def get_cleaned_text(text):
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+    text = re.sub(r'[\n\t\v\r\f]', ' ', text)
 
-def get_text_from_documents(document_path_list):
+    text = re.sub(r'[^\x20-\x7E]', '', text)
+
+    text = re.sub(r'\s+', ' ', text)
+
+    text = text.strip()
+
+    return text
+
+
+def extract_text_from_documents():
+
+    try:
+        if os.path.exists("database/documents/original"):
+
+            document_path_list = os.listdir("database/documents/original")
+            print(document_path_list)
+
+            logger.info("Documents found in the database.")
+
+    except FileNotFoundError as e:
+        logger.error(f"{e}\n")
 
     text = ""
 
     for file in document_path_list:
-        file_path = os.path.join("database/documents", file)
+        file_path = os.path.join("database/documents/original", file)
 
         if file.endswith('.pdf'):
-            with open(file_path, 'rb') as f:
-                pdf = PdfReader(f)
-                for page in pdf.pages:
-                    text += page.extract_text() + '\n'
+            pdf = PdfReader(file_path)
+            for page in pdf.pages:
+                text += page.extract_text() + '\n'
+            text = get_cleaned_text(text)
         
         elif file.endswith('.docx'):
-            doc = Document(file_path)
+            doc = docx.Document(file_path)
             for para in doc.paragraphs:
                 text += para.text + '\n'
+            text = get_cleaned_text(text)
 
         elif file.endswith('.txt'):
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding = 'utf-8') as f:
                 text += f.read()
+            text = get_cleaned_text(text)
 
         else:
             raise ValueError("Unsupported file format")
         
-    return text
-
-def create_embeddings(chunk_size=50):
-
-    text = get_text_from_documents(os.listdir("database/documents/original")[1:])
-
     if not os.path.exists("database/documents/processed"):
         os.makedirs("database/documents/processed")
 
     with open("database/documents/processed/preprocessed.txt", 'w') as f:
-        f.write(text)
+        f.write(text) 
 
-    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    return text
 
-    embeddings = model.encode(chunks)
+
+def split_document_content(words_per_chunk = 50):
+
+    text = extract_text_from_documents()
+
+    words = text.split()
+
+    text_chunks = []
+
+    for i in range(0, len(text), words_per_chunk):
+        text_chunks.append(' '.join(words[i:i+words_per_chunk]))
+
+    documents = [Document(page_content = content) for content in text_chunks]
+
+    return documents
+
+
+def intialize_vector_stores(documents):
     
-    return chunks, embeddings
+    embeddings = HuggingFaceEmbeddings()
 
-def find_most_similar_text(discussion_point, chunks, embeddings):
+    db = Chroma(embedding_function = embeddings)
 
-    dp_embedding = model.encode([discussion_point])
+    uuids = [str(uuid4()) for _ in range(len(documents))]
+    db.add_documents(documents)
 
-    similarities = cosine_similarity(dp_embedding, embeddings)[0]
+    return db
 
-    max_index = np.argmax(similarities)
 
-    return chunks[max_index]   
+def get_agenda_text(discussion_point, vector_store):
     
-def create_agenda():
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    genai = GoogleGenerativeAI(model = "gemini-pro", api_key = gemini_api_key)
 
-    with open("database/discussion_points/discussion_points.json", 'r') as f:
-        discussion_points = json.load(f)
+    question_text = ""
 
-    agenda_items = []
-    chunks, embeddings = create_embeddings()
+    for point in discussion_point:
 
-    for point in discussion_points:
-        relevant_text = find_most_similar_text(point, chunks, embeddings)
+        similar_docs = vector_store.similarity_search(point, k = 2)
 
-        if relevant_text:
-            prompt = f"""
-            Create an agenda item based on the following discussion point and relevant document excerpts:
-            
-            Discussion Point: {point}
-            
-            Relevant Document Excerpts:
-            {relevant_text}
-            
-            Please provide:
-            1. A clear title for this agenda item
-            2. Key points to be discussed
-            """
+        question_text += f"Discussion Point: {point}\n"
+        question_text += "Relevant Document Excerpts:\n"
 
-            response = genai_model.generate_content(prompt)
-            agenda_items.append(response.text)
+        for doc in similar_docs:
+            question_text += f" - {doc.page_content}\n"
+        
+        question_text += "\n"
 
-    full_agenda_prompt = f"""
-    Create a comprehensive meeting agenda using the following agenda items:
-    
-    {' '.join(agenda_items)}
-    
-    Please organize the agenda by linking related topics and provide a streamlined meeting flow.
-    Include a brief introduction and conclusion section.
+    prompt_text = PromptTemplate.from_template(
+        """
+            You are a member of the meeting management team. You have been tasked with generating agenda items for the upcoming meeting.
+            Provide a very clear and well defined agenda item based on the following discussion points and relevant document excerpts:
+
+            Discussion points and their relevant document excerpts: {question_text}
+
+            Remeber it is important to provide a clear title for the agenda item and key points to be discussed.
+            Also it should be in natural language and easy to understand.
+            No need to provide any additional information just steek with the provided information.
+        """
+    )
+
+    chain = prompt_text | genai
+
+    agenda_text = chain.invoke({"question_text" : question_text})
+
+    return agenda_text
+
+
+def agenda_generation():
+    """
+        main function to generate agenda items from the document
     """
 
-    response = genai_model.generate_content(full_agenda_prompt)
+    documents = split_document_content()
 
-    logger.info(f"Full agenda created successfully.\n")
-    logger.info(f"Full agenda: {response.text}\n")
-    logger.info(f"Agenda items: {agenda_items}\n")
+    discussion_points_file_path = "database/discussion_points/discussion_points.json"
+    index_name = "chromaDB-meeting-agenda"
+    
+    with open(discussion_points_file_path, 'r') as f:
+        discussion_points = json.load(f)
 
-    return response.text, agenda_items
+    vector_store = intialize_vector_stores(documents = documents)
+
+    agenda_text = get_agenda_text(discussion_points, vector_store)
+
+    return agenda_text

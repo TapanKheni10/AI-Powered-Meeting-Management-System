@@ -6,12 +6,12 @@ python-docx
 python-pptx
 pyPDF2
 google-generativeai
-sentence-transformers
-scikit-learn
 moviepy
 transformers
 soundfile
 torch
 torchaudio
+langchain
+chromadb
 
 # -e .
