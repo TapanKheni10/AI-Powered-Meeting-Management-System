@@ -1,114 +1,206 @@
-from moviepy.editor import VideoFileClip
 import os
-from transformers import pipeline
-from MeetingManagement import logger
+import json
+from uuid import uuid4
+from typing import List, Optional
+
 import soundfile as sf 
+from transformers import pipeline
+from moviepy.editor import VideoFileClip
 from langchain_core.documents import Document
 from langchain.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from uuid import uuid4
-import json
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-## Define the input video file path and output audio file path
+from MeetingManagement import logger
 
-def extract_audio_from_video(video_file_path):
+AUDIO_FILE_PATH = os.path.join("database/meeting_tracking", "audio.mp3")
+DISCUSSION_POINTS_PATH = "database/discussion_points/discussion_points.json"
+TRANSCRIPT_PATH = os.path.join("database/meeting_tracking", "transcript.txt")
 
-    video_clip = VideoFileClip(video_file_path)
+def extract_audio_from_video(video_file_path) -> bool:
+    """
+    Extract audio from a video file.
 
-    audio_clip = video_clip.audio
-    is_audio_available = audio_clip is not None
-    
-    audio_file_path = os.path.join("database/meeting_tracking", "audio.mp3")
+    Args:
+        video_file_path (str): Path to the video file.
 
-    if is_audio_available:
-        audio_clip.write_audiofile(audio_file_path)
-        audio_clip.close()  
-
-    video_clip.close()
-
-    return is_audio_available
-
-def get_text_from_audio(audio_file_path):
-
-    transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-small")
-
-    audio_data, sample_rate = sf.read(audio_file_path)
-
-    if len(audio_data.shape) > 1:
-        audio_data = audio_data.mean(axis=1)
-
-    transcript = transcriber({"array": audio_data, "sampling_rate": sample_rate})
-
-    text = transcript.get('text', None)
-
-    transcript_path = os.path.join("database/meeting_tracking", "transcript.txt")
+    Returns:
+        bool: True if audio was successfully extracted, False otherwise.
+    """
 
     try:
-        if text is not None:
-            with open(transcript_path, "w") as file:
-                file.write(text)
+        logger.info("Extracting audio from video...")
+        # Load the video file by creating a VideoFileClip object
+        video_clip = VideoFileClip(video_file_path)
 
-        return text
+        # Extract the audio from the video
+        audio_clip = video_clip.audio
+        is_audio_available = audio_clip is not None
+
+        # Write the audio to a file
+        if is_audio_available:
+            audio_clip.write_audiofile(AUDIO_FILE_PATH)
+            audio_clip.close()
+            video_clip.close()
+
+            return is_audio_available  
+
+        else:
+            return is_audio_available
+        
         
     except Exception as e:
-        logger.info("Error in extracting text from audio: ", e)
+        logger.error(f"Error extracting audio from video: {e}")
         raise e
+
+def get_transcript_from_audio(audio_file_path) -> Optional[str]:
+    """
+    Generate transcript from an audio file using Whisper model.
+
+    Args:
+        audio_file_path (str): Path to the audio file.
+
+    Returns:
+        Optional[str]: Transcribed text if successful, None otherwise.
+    """
+
+    try:
+        logger.info("Generating transcript from audio...")
+
+        # Load the automatic speech recognition pipeline
+        transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-small")
+        audio_data, sample_rate = sf.read(audio_file_path)
+
+        # If the audio has multiple channels, take the mean of all channels
+        if len(audio_data.shape) > 1:
+            audio_data = audio_data.mean(axis=1)
+
+        # Transcribe the audio
+        transcript = transcriber({"array": audio_data, "sampling_rate": sample_rate})
+        text = transcript.get('text', None)
+
+        # Save the transcript to a file
+        if text is not None:
+            with open(TRANSCRIPT_PATH, "w") as file:
+                file.write(text)
+            return text
+        
+        else:
+            logger.warning("Transcript not generated.")
+            return None
     
-def split_document_content(text, words_per_chunk = 50):
+    except Exception as e:
+        logger.error(f"Error in extracting text from audio: {e}")
+        raise e
 
-    words = text.split()
+def get_documents(text, words_per_chunk = 50):
+    """
+    Split text into chunks and create Document objects.
 
-    text_chunks = []
+    Args:
+        text (str): Input text to be split.
+        words_per_chunk (int): Number of words per chunk.
 
-    for i in range(0, len(text), words_per_chunk):
-        text_chunks.append(' '.join(words[i:i+words_per_chunk]))
+    Returns:
+        List[Document]: List of Document objects.
+    """
 
+    logger.info("Creating Document objects...")
+
+    # Split the text into chunks
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size = words_per_chunk, chunk_overlap = 30)
+    text_chunks = text_splitter.split_text(text)
+
+    # Create Document objects from the text chunks
     documents = [Document(page_content = content) for content in text_chunks]
+
+    logger.info(f"Created {len(documents)} Document objects.")
 
     return documents
 
 
-def intialize_vector_stores(documents):
-    
+def get_vector_store(documents):
+    """
+    Create a vector store from the given documents.
+
+    Args:
+        documents (list): List of Document objects.
+
+    Returns:
+        Chroma (object): A Chroma vector store containing the document embeddings.
+    """
+
+    logger.info("Creating vector store...")
+
+    # Initialize the Hugging Face embeddings
     embeddings = HuggingFaceEmbeddings()
+    # Initialize the Chroma vector store
+    chroma_db = Chroma(embedding_function = embeddings)
 
-    db = Chroma(embedding_function = embeddings)
-
+    # Add the documents to the vector store
+    logger.info("Adding documents to the vector store...")
     uuids = [str(uuid4()) for _ in range(len(documents))]
-    db.add_documents(documents)
+    chroma_db.add_documents(documents, ids = uuids)
 
-    return db
+    logger.info("Documents added to the vector store.")
 
-def get_undiscussed_point(discussion_point, vector_store):
+    return chroma_db
 
+def get_undiscussed_points(discussion_point, vector_store) -> List[str]:
+    """
+    Identify undiscussed points based on similarity search.
+
+    Args:
+        discussion_points (List[str]): List of discussion points.
+        vector_store (Chroma): Vector store containing the meeting transcript document objects.
+
+    Returns:
+        List[str]: List of undiscussed points.
+    """
+
+    logger.info("Identifying undiscussed points...")
+
+    # Identify undiscussed points
     undiscussed_point = []
-
     for point in discussion_point:
+        related_documents = vector_store.similarity_search_with_relevance_scores(point, score_threshold = 0.5)    
 
-        similar_docs = vector_store.similarity_search_with_relevance_scores(point, score_threshold = 0.2)    
-
-        if len(similar_docs) == 0:
+        if len(related_documents) == 0:
             undiscussed_point.append(point)
+
+    logger.info
 
     return undiscussed_point
     
 def analyze_meeting():
+    """
+    Analyze the meeting by processing audio, generating transcript,
+    and identifying undiscussed points.
 
-    audio_file_path = os.path.join("database/meeting_tracking", "audio.mp3")
-    discussion_points_path = "database/discussion_points/discussion_points.json"
+    Returns:
+        List[str]: List of undiscussed points.
+    """
 
-    with open(discussion_points_path, "r") as file:
-        discussion_points = json.load(file)
+    try:
+        logger.info("Analyzing meeting...")
 
-    transcript = get_text_from_audio(audio_file_path)
+        with open(DISCUSSION_POINTS_PATH, "r") as file:
+            discussion_points = json.load(file)
 
-    documents = split_document_content(transcript)
+        transcript = get_transcript_from_audio(AUDIO_FILE_PATH)
+        logger.info("Transcript generated successfully.")
 
-    vector_store = intialize_vector_stores(documents = documents)
+        documents = get_documents(transcript)
 
-    response = get_undiscussed_point(discussion_point = discussion_points, vector_store = vector_store)
+        vector_store = get_vector_store(documents = documents)
 
-    return response
+        response = get_undiscussed_points(discussion_point = discussion_points, vector_store = vector_store)
+
+        return response
+    
+    except Exception as e:
+        logger.error(f"Error in analyzing meeting: {e}")
+        raise e
 
 
 
