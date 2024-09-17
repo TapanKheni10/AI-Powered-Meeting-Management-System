@@ -9,64 +9,84 @@ from langchain.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.prompts import PromptTemplate
-import re
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from uuid import uuid4
+import string
 
 load_dotenv()
 
-def get_cleaned_text(text):
+def get_cleaned_text(text) -> str:
+    """
+    Clean the input text by removing non-printable characters and extra spaces.
 
-    text = re.sub(r'[\n\t\v\r\f]', ' ', text)
+    Args:
+        text (str): The input text to be cleaned.
 
-    text = re.sub(r'[^\x20-\x7E]', '', text)
+    Returns:
+        str: The cleaned text.
+    """
 
-    text = re.sub(r'\s+', ' ', text)
+    # Remove non-ASCII characters and replace whitespaces with a single space
+    text = ''.join([ch if ch in string.printable else ' ' for ch in text])
 
-    text = text.strip()
+    # Remove extra spaces and string leading / trailing spaces
+    return ' '.join(text.split())
 
-    return text
 
+def extract_text_from_documents() -> str:
+    """
+    Extract text from various document types for the user uploaded documents.
 
-def extract_text_from_documents():
+    Returns:
+        str: Concatenated text from all documents.
+    """
 
     try:
-        if os.path.exists("database/documents/original"):
-
+        document_dir_path = "database/documents/original"
+        if os.path.exists(document_dir_path):
             document_path_list = os.listdir("database/documents/original")
-            print(document_path_list)
-
             logger.info("Documents found in the database.")
+        else:
+            logger.error("Document directory not found.")
 
     except FileNotFoundError as e:
-        logger.error(f"{e}\n")
+        logger.error(f"Error accessing document directory: {e}")
 
     text = ""
 
+    logger.info("Extracting text from the uploaded documents...")
+
+    # Extract text from each document
     for file in document_path_list:
         file_path = os.path.join("database/documents/original", file)
 
+        # Extract text from PDF files
         if file.endswith('.pdf'):
             pdf = PdfReader(file_path)
             for page in pdf.pages:
                 text += page.extract_text() + '\n'
-            text = get_cleaned_text(text)
         
+        # Extract text from DOCX files
         elif file.endswith('.docx'):
             doc = docx.Document(file_path)
             for para in doc.paragraphs:
                 text += para.text + '\n'
-            text = get_cleaned_text(text)
 
+        # Extract text from TXT files
         elif file.endswith('.txt'):
             with open(file_path, 'r', encoding = 'utf-8') as f:
                 text += f.read()
-            text = get_cleaned_text(text)
 
         else:
             raise ValueError("Unsupported file format")
         
-    if not os.path.exists("database/documents/processed"):
-        os.makedirs("database/documents/processed")
+    logger.info("Text extraction complete.")
+        
+    text = get_cleaned_text(text)
+    logger.info("Text cleaning complete.")
+        
+    # Save the preprocessed text to a file
+    os.makedirs("database/documents/processed", exist_ok = True)
 
     with open("database/documents/processed/preprocessed.txt", 'w') as f:
         f.write(text) 
@@ -74,54 +94,69 @@ def extract_text_from_documents():
     return text
 
 
-def split_document_content(words_per_chunk = 50):
+def get_text_chunks(words_per_chunk = 100):
+    """
+    Split the extracted text into chunks.
 
+    Args:
+        words_per_chunk (int): Number of words per chunk. Default is 100.
+
+    Returns:
+        list: List of text chunks.
+    """
+
+    # Extract text from the uploaded documents
     text = extract_text_from_documents()
 
-    words = text.split()
+    # Split the text into chunks
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size = words_per_chunk, chunk_overlap = 30)
+    text_chunks = text_splitter.split_text(text)
 
-    text_chunks = []
+    logger.info(f"Text split into {len(text_chunks)} chunks.")
 
-    for i in range(0, len(text), words_per_chunk):
-        text_chunks.append(' '.join(words[i:i+words_per_chunk]))
-
-    documents = [Document(page_content = content) for content in text_chunks]
-
-    return documents
+    return text_chunks
 
 
-def intialize_vector_stores(documents):
-    
+def get_vector_store(documents):
+    """
+    Create a vector store from the given documents.
+
+    Args:
+        documents (list): List of Document objects.
+
+    Returns:
+        Chroma (object): A Chroma vector store containing the document embeddings.
+    """
+
+    logger.info("Creating vector store...")
+
+    # Initialize the Hugging Face embeddings
     embeddings = HuggingFaceEmbeddings()
 
-    db = Chroma(embedding_function = embeddings)
+    # Initialize the Chroma vector store
+    chroma_db = Chroma(embedding_function = embeddings)
 
+    logger.info("Adding documents to the vector store...")
+    # Add the documents to the vector store
     uuids = [str(uuid4()) for _ in range(len(documents))]
-    db.add_documents(documents)
+    chroma_db.add_documents(documents, ids = uuids)
 
-    return db
+    return chroma_db
 
+def get_conversational_chain():
+    """
+    Create a conversational chain using the Gemini API.
 
-def get_agenda_text(discussion_point, vector_store):
-    
+    Returns:
+        chain (object): A conversational chain object.
+    """
+
+    # Initialize the Google Generative AI
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     genai = GoogleGenerativeAI(model = "gemini-pro", api_key = gemini_api_key)
 
-    question_text = ""
-
-    for point in discussion_point:
-
-        similar_docs = vector_store.similarity_search(point, k = 2)
-
-        question_text += f"Discussion Point: {point}\n"
-        question_text += "Relevant Document Excerpts:\n"
-
-        for doc in similar_docs:
-            question_text += f" - {doc.page_content}\n"
-        
-        question_text += "\n"
-
-    prompt_text = PromptTemplate.from_template(
+    # Create a conversational chain
+    prompt = PromptTemplate.from_template(
         """
             You are a member of the meeting management team. You have been tasked with generating agenda items for the upcoming meeting.
             Provide a very clear and well defined agenda item based on the following discussion points and relevant document excerpts:
@@ -134,28 +169,81 @@ def get_agenda_text(discussion_point, vector_store):
         """
     )
 
-    chain = prompt_text | genai
+    chain = prompt | genai
 
-    agenda_text = chain.invoke({"question_text" : question_text})
+    logger.info("Conversational chain created.")
 
-    return agenda_text
+    return chain
+
+
+def get_agenda(discussion_point, vector_store):
+    """
+    Generate agenda items based on discussion points and relevant document excerpts.
+
+    Args:
+        discussion_points (list): List of discussion points.
+        vector_store (Chroma): The vector store containing document embeddings.
+
+    Returns:
+        str: Generated agenda items.
+    """
+    
+    agenda_list = []
+
+    logger.info("Finding relevant document excerpts for each discussion point...")
+    # Get the most relevant document excerpts for each discussion point
+    for point in discussion_point:
+
+        related_documents = vector_store.similarity_search(point, k = 2)
+
+        agenda_list.append(f"Point: {point}\nRelevant Document Excerpts:\n")
+
+        for i, doc in enumerate(related_documents):
+            agenda_list.append(f"{i}) {doc.page_content}")
+        
+        agenda_list.append("\n")
+
+    agenda_summary_text = '\n'.join(agenda_list)
+
+    # Generate the agenda items using the conversational chain
+    chain = get_conversational_chain()
+
+    logger.info("Generating agenda items using the conversational chain...")
+
+    response = chain.invoke({"question_text": agenda_summary_text})
+
+    return response
 
 
 def agenda_generation():
     """
-        main function to generate agenda items from the document
+    Main function to generate agenda items from the documents.
+
+    Returns:
+        str: Generated agenda items.
     """
 
-    documents = split_document_content()
+    logger.info("Generating agenda items...")
+
+    text_chunks = get_text_chunks()
+
+    # Create a list of Document objects
+    documents = [Document(page_content = chunk) for chunk in text_chunks]
+    logger.info(f"Number of documents created: {len(documents)}")
 
     discussion_points_file_path = "database/discussion_points/discussion_points.json"
-    index_name = "chromaDB-meeting-agenda"
     
+    # Load the discussion points from the JSON file
     with open(discussion_points_file_path, 'r') as f:
         discussion_points = json.load(f)
 
-    vector_store = intialize_vector_stores(documents = documents)
+    vector_store = get_vector_store(documents = documents)
 
-    agenda_text = get_agenda_text(discussion_points, vector_store)
+    logger.info("Vector store created.")
+    logger.info("Generating agenda items...")
 
-    return agenda_text
+    response = get_agenda(discussion_points, vector_store)
+
+    logger.info("Agenda items generated successfully.")
+
+    return response

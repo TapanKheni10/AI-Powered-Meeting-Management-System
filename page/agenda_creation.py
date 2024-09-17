@@ -1,16 +1,19 @@
 from MeetingManagement.servies.agenda_service import agenda_generation
 import streamlit as st
-import os
-import json
 
+# main function to run the streamlit code for agenda creater page
 def run():
     
+    # title and description of the agenda creater page
     st.header("Agenda Creater")
     st.write("This tool will create an agenda for the meeting based on the discussion points and the documents provided.")
 
-    b = st.button("Create Agenda")
+    clicked = st.button("Create Agenda")
     
-    if b:
+    # check if the button is clicked or not
+    if clicked:
+
+        # calling the agenda_generation function to generate the agenda
         agenda_text = agenda_generation()
         
         st.write("Here is the agenda of the meeting:")
