@@ -1,9 +1,6 @@
 python-dotenv
-streamlit==1.37.0
-streamlit-webrtc
-opencv-python
+streamlit==1.36.0
 python-docx
-python-pptx
 pyPDF2
 google-generativeai
 moviepy
