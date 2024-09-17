@@ -5,7 +5,7 @@ PAGES = {
     "Home": {"page": home, "title": "Home Page", "icon": "🏠"},
     "Document Manager": {"page": document_manager, "title": "Document Manager", "icon": "📂"},
     "Agenda Creator": {"page": agenda_creation, "title": "Agenda Creator", "icon": "📝"},
-    "Video Tracking": {"page": meeting_tracker, "title": "Video Tracking", "icon": "📹"},
+    "Video Analyzer": {"page": meeting_tracker, "title": "Video Analyzer", "icon": "📹"},
     "Summary Generator": {"page": summary_generator, "title": "Summary Generator", "icon": "📄"},
 }
 

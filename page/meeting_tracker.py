@@ -4,14 +4,16 @@ from MeetingManagement.servies.meeting_service import extract_audio_from_video, 
 
 def run():
 
-    st.header("Video Tracker Tool")
+    st.header("Video Analyzer")
 
     VIDEO_DIR = "database/meeting_tracking"
 
     if not os.path.exists(VIDEO_DIR):
         os.makedirs(VIDEO_DIR)
 
-    uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi", "mov"])
+    st.write("Upload a video file to analyze the meeting and check if all the points are covered or not.")
+
+    uploaded_file = st.file_uploader(label = 'Upload a video', type=["mp4", "avi", "mov"], label_visibility = 'hidden')
 
     if uploaded_file is not None:
 
