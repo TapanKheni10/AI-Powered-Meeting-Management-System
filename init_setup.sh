@@ -2,11 +2,11 @@ echo[$(date)] : "Setting up the intial setup for the project"
 
 echo[$(date)] : "Creating the virtual environment with python version 3.9.6"
 
-python3 -m venv meeting
+conda create -n venv python=3.9.6
 
 echo[$(date)] : "Activating the virtual environment"
 
-source venv/bin/activate
+conda activate venv
 
 echo[$(date)] : "Upgrading pip setuptools and wheel"
 
