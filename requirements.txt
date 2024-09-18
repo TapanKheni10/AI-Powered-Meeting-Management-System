@@ -10,5 +10,8 @@ torch
 torchaudio
 langchain
 chromadb
+langchain_community
+langchain_google_genai
+langchain_huggingface
 
 # -e .
