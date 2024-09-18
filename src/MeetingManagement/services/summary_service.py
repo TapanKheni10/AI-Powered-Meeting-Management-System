@@ -1,8 +1,10 @@
 import os
 from dotenv import load_dotenv
+
 import google.generativeai as genai
 
 from MeetingManagement import logger
+from MeetingManagement.constants import TRANSCRIPT_PATH
 
 load_dotenv()
 
@@ -25,13 +27,17 @@ Ensure clarity by using bullet points or short paragraphs for easy reading.
 
 format should be like this:
 brief summary of the entire meeting.
+- relevant text for the brief summary.
+
 key decisions made during the meeting.
+- relevant text for the key decisions.
+
 assignment of action items to team members.
+- relevant text for the action items.
 
 Here is the transcript: 
 """
 
-TRANSCRIPT_FILE_PATH = "database/meeting_tracking/transcript.txt"
 
 def get_summary() -> str:
     """
@@ -44,7 +50,7 @@ def get_summary() -> str:
     logger.info("Generating summary of the meeting from the transcript...")
 
     # Read the transcript from the file
-    with open(TRANSCRIPT_FILE_PATH, 'r') as file:
+    with open(TRANSCRIPT_PATH, 'r') as file:
         transcript = file.read()
 
     # Generate the summary using the Gemini Pro model

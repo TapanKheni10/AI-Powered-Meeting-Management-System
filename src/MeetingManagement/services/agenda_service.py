@@ -1,17 +1,20 @@
 import os
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader
 import docx
 import json
-from MeetingManagement import logger
-from langchain_core.documents import Document
+import string
+from uuid import uuid4
+from PyPDF2 import PdfReader
+from dotenv import load_dotenv
+
 from langchain.vectorstores import Chroma
+from langchain_core.documents import Document
+from langchain.prompts import PromptTemplate
 from langchain_google_genai import GoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from uuid import uuid4
-import string
+
+from MeetingManagement import logger
+from MeetingManagement.constants import DOCUMENTS_DIR, DISCUSSION_POINTS_DIR
 
 load_dotenv()
 
@@ -42,9 +45,9 @@ def extract_text_from_documents() -> str:
     """
 
     try:
-        document_dir_path = "database/documents/original"
-        if os.path.exists(document_dir_path):
-            document_path_list = os.listdir("database/documents/original")
+        original_dir_path = os.path.join(DOCUMENTS_DIR, "original")
+        if os.path.exists(original_dir_path):
+            document_path_list = os.listdir(original_dir_path)
             logger.info("Documents found in the database.")
         else:
             logger.error("Document directory not found.")
@@ -58,7 +61,7 @@ def extract_text_from_documents() -> str:
 
     # Extract text from each document
     for file in document_path_list:
-        file_path = os.path.join("database/documents/original", file)
+        file_path = os.path.join(original_dir_path, file)
 
         # Extract text from PDF files
         if file.endswith('.pdf'):
@@ -86,9 +89,10 @@ def extract_text_from_documents() -> str:
     logger.info("Text cleaning complete.")
         
     # Save the preprocessed text to a file
-    os.makedirs("database/documents/processed", exist_ok = True)
+    processed_dir_path = os.path.join(DOCUMENTS_DIR, "processed")
+    os.makedirs(processed_dir_path, exist_ok = True)
 
-    with open("database/documents/processed/preprocessed.txt", 'w') as f:
+    with open(os.path.join(processed_dir_path, "processed.txt"), 'w') as f:
         f.write(text) 
 
     return text
@@ -231,7 +235,7 @@ def agenda_generation():
     documents = [Document(page_content = chunk) for chunk in text_chunks]
     logger.info(f"Number of documents created: {len(documents)}")
 
-    discussion_points_file_path = "database/discussion_points/discussion_points.json"
+    discussion_points_file_path = os.path.join(DISCUSSION_POINTS_DIR, 'discussion_points.json')
     
     # Load the discussion points from the JSON file
     with open(discussion_points_file_path, 'r') as f:

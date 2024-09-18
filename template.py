@@ -12,23 +12,18 @@ list_of_files = [
     "app.py",
     f"src/{project_name}",
     f"src/{project_name}/__init__.py",
-    f"src/{project_name}/servies",
-    f"src/{project_name}/servies/__init__.py",
-    f"src/{project_name}/servies/document_service.py",
-    f"src/{project_name}/servies/meeting_service.py",
-    f"src/{project_name}/servies/llm_service.py",
-    f"src/{project_name}/servies/summary_service.py",
+    f"src/{project_name}/services",
+    f"src/{project_name}/services/__init__.py",
+    f"src/{project_name}/services/agenda_service.py",
+    f"src/{project_name}/services/meeting_service.py",
+    f"src/{project_name}/services/summary_service.py",
 
-    f"src/{project_name}/utils",
-    f"src/{project_name}/utils/__init__.py",
-    f"src/{project_name}/utils/database.py",
-    f"src/{project_name}/utils/vector_store.py",
+    f"src/{project_name}/constants",
+    f"src/{project_name}/constants/__init__.py",
 
-    f"src/{project_name}/models",
-    f"src/{project_name}/models/__init__.py",
-    f"src/{project_name}/models/document.py",
-    f"src/{project_name}/models/meeting.py",
-    f"src/{project_name}/models/user.py",
+    "requirements.txt",
+    "setup.py",
+
 ]
 
 for file_path in list_of_files:

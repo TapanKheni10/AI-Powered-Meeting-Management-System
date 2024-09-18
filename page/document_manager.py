@@ -1,15 +1,13 @@
-import streamlit as st
 import os
 import json
+import streamlit as st
+
 from MeetingManagement import logger
+from MeetingManagement.constants import DOCUMENTS_DIR, DISCUSSION_POINTS_DIR
 
 # main function to run the streamlit code for document manager page
 def run():
     
-    # Directory constants for saving documents and discussion points
-    DISCUSSION_POINTS_DIR  = 'database/discussion_points'
-    DOCUMENTS_DIR = 'database/documents'
-
     # Create directories if they do not exist
     os.makedirs(DOCUMENTS_DIR, exist_ok = True)
 

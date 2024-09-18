@@ -1,5 +1,6 @@
-from MeetingManagement.servies.agenda_service import agenda_generation
 import streamlit as st
+
+from MeetingManagement.services.agenda_service import agenda_generation
 
 # main function to run the streamlit code for agenda creater page
 def run():

@@ -12,10 +12,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from MeetingManagement import logger
-
-AUDIO_FILE_PATH = os.path.join("database/meeting_tracking", "audio.mp3")
-DISCUSSION_POINTS_PATH = "database/discussion_points/discussion_points.json"
-TRANSCRIPT_PATH = os.path.join("database/meeting_tracking", "transcript.txt")
+from MeetingManagement.constants import AUDIO_FILE_PATH, DISCUSSION_POINTS_PATH, TRANSCRIPT_PATH
 
 def extract_audio_from_video(video_file_path) -> bool:
     """

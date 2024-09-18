@@ -1,6 +1,8 @@
-import streamlit as st
 import os
-from MeetingManagement.servies.meeting_service import extract_audio_from_video, analyze_meeting
+import streamlit as st
+
+from MeetingManagement.services.meeting_service import extract_audio_from_video, analyze_meeting
+from MeetingManagement.constants import VIDEO_DIR
 
 # main function to run the streamlit code for meeting tracker page
 def run():
@@ -8,8 +10,6 @@ def run():
     # title and description of the page
     st.header("Video Analyzer")
     st.write("Upload a video file to analyze the meeting and check if all the points are covered or not.")
-
-    VIDEO_DIR = "database/meeting_tracking"
 
     os.makedirs(VIDEO_DIR, exist_ok = True)
 

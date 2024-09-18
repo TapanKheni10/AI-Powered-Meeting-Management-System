@@ -1,5 +1,6 @@
 import streamlit as st
-from MeetingManagement.servies.summary_service import get_summary
+
+from MeetingManagement.services.summary_service import get_summary
 
 # main function to run the streamlit code for summary generator page
 def run():
