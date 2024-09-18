@@ -11,8 +11,7 @@ def run():
 
     VIDEO_DIR = "database/meeting_tracking"
 
-    if not os.path.exists(VIDEO_DIR):
-        os.makedirs(VIDEO_DIR)
+    os.makedirs(VIDEO_DIR, exist_ok = True)
 
     # upload the video file
     uploaded_file = st.file_uploader(label = 'Upload a video', type=["mp4", "avi", "mov"], label_visibility = 'hidden')

@@ -15,13 +15,18 @@ prompt = """You are a project manager at a company. You have a meeting with your
 - Key decisions made during the meeting if it's available directly in the transcript otherwise just avoid it instead of fabricating it.
 - Any action items assigned to the team members based on the transcript but if it's not available then leave it.
 
-If any of the above points are not mentioned in the transcript, you are not required to include them in the summary. never give a wrong answer.
+If any of the above points are not mentioned in the transcript, you are not required to include them in the summary. never give a wrong answer instead say not discussed during the meeting or anything similar to this.
 Summary should be concise and clear in a professional manner.
 
 Only include information directly mentioned in the transcript. Do not add any details that weren't explicitly discussed.
 
 Keep the summary concise and focused. It should be informative but not overly long.
 Ensure clarity by using bullet points or short paragraphs for easy reading.
+
+format should be like this:
+brief summary of the entire meeting.
+key decisions made during the meeting.
+assignment of action items to team members.
 
 Here is the transcript: 
 """

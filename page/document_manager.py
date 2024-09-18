@@ -11,8 +11,9 @@ def run():
     DOCUMENTS_DIR = 'database/documents'
 
     # Create directories if they do not exist
-    os.mkdir(DISCUSSION_POINTS_DIR, exist_ok = True)
-    os.mkdir(DOCUMENTS_DIR, exist_ok = True)
+    os.makedirs(DOCUMENTS_DIR, exist_ok = True)
+
+    os.makedirs(DISCUSSION_POINTS_DIR, exist_ok = True)
 
     def save_uploaded_file_and_discussion_points(uploaded_file, discussion_point):
         """
@@ -26,7 +27,7 @@ def run():
 
         # path for saving original uploaded files
         original_file_path = os.path.join(DOCUMENTS_DIR, "original")
-        os.mkdir(original_file_path, exist_ok = True)
+        os.makedirs(original_file_path, exist_ok = True)
        
         # save each uploaded file to the designated location
         for file in uploaded_file:
