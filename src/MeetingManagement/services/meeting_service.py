@@ -90,7 +90,7 @@ def get_transcript_from_audio(audio_file_path) -> Optional[str]:
         logger.error(f"Error in extracting text from audio: {e}")
         raise e
 
-def get_documents(text, words_per_chunk = 50):
+def get_documents(text, words_per_chunk = 100):
     """
     Split text into chunks and create Document objects.
 
@@ -160,7 +160,7 @@ def get_undiscussed_points(discussion_point, vector_store) -> List[str]:
     # Identify undiscussed points
     undiscussed_point = []
     for point in discussion_point:
-        related_documents = vector_store.similarity_search_with_relevance_scores(point, score_threshold = 0.5)    
+        related_documents = vector_store.similarity_search_with_relevance_scores(point, score_threshold = 0.1)    
 
         if len(related_documents) == 0:
             undiscussed_point.append(point)

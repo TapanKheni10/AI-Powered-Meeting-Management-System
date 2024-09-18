@@ -16,6 +16,9 @@ Our system aims to save time and enhance productivity, ensuring meetings are eff
 	    <a href = "#How-to-Start-Project">How to Start Project</a>
     </li>
     <li>
+      <a href="#Dependencies">Dependencies</a>
+    </li>
+    <li>
 	    <a href = "#License">License</a>
     </li>
   </ol>
@@ -104,6 +107,15 @@ For the lazy individuals like me just run the following command:
    bash init_setup.sh
    ```
 It'll perform all the steps for you except the last two steps. Isn't it good?
+
+## Denendencies
+   Following are some of the key packages used in this project:
+
+   - Langchain
+   - Huggingface
+   - Streamlit
+   - Python (version 3.9.6)
+   - Gemini API (https://ai.google.dev/gemini-api/docs/api-key)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
