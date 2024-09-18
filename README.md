@@ -78,7 +78,7 @@ Follow these steps to get started with the project:
    source your_env_name/bin/activate
    ```
    This command is for those who haven't created the environment using Anaconda.
-6. **Install Dependencies:**
+5. **Install Dependencies:**
    
    Install the project dependencies by running:
    ```bash
@@ -86,23 +86,23 @@ Follow these steps to get started with the project:
    ```
    This command will install all the required packages listed in the requirements.txt file.
 
-7. **Configure Your Gemini API Key:**
+6. **Configure Your Gemini API Key:**
 
-You need to create .env file in your project's root directory in which you are supposed add your own Gemini API key in the following manner:
-```bash
-GEMINI_API_KEY = "your_gemini_api_key"
-```
+   You need to create .env file in your project's root directory in which you are supposed add your own Gemini API key in the following manner:
+   ```bash
+   GEMINI_API_KEY = "your_gemini_api_key"
+   ```
 
-8. **Run the Streamlit App:**
+7. **Run the Streamlit App:**
    ```bash
    streamlit run app.py
    ```
    This command will start the Streamlit app.
 
 For the lazy individuals like me just run the following command:
-```bash
-bash init_setup.sh
-```
+   ```bash
+   bash init_setup.sh
+   ```
 It'll perform all the steps for you except the last two steps. Isn't it good?
 
 ## License
