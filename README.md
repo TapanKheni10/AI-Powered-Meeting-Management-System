@@ -86,7 +86,14 @@ Follow these steps to get started with the project:
    ```
    This command will install all the required packages listed in the requirements.txt file.
 
-7. **Run the Streamlit App:**
+7. **Configure Your Gemini API Key:**
+
+You need to create .env file in your project's root directory in which you are supposed add your own Gemini API key in the following manner:
+```bash
+GEMINI_API_KEY = "your_gemini_api_key"
+```
+
+8. **Run the Streamlit App:**
    ```bash
    streamlit run app.py
    ```
@@ -96,7 +103,7 @@ For the lazy individuals like me just run the following command:
 ```bash
 bash init_setup.sh
 ```
-It'll perform all the steps for you except to start the Streamlit app. Isn't it good?
+It'll perform all the steps for you except the last two steps. Isn't it good?
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
