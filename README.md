@@ -108,7 +108,7 @@ For the lazy individuals like me just run the following command:
    ```
 It'll perform all the steps for you except the last two steps. Isn't it good?
 
-## Denendencies
+## Dependencies
    Following are some of the key packages used in this project:
 
    - Langchain
